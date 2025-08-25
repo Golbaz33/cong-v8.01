@@ -1,5 +1,5 @@
 # Fichier : ui/pages/conges_management_page.py
-# VERSION FINALE - Connexion aux fenêtres "Modifier Soldes" et "Synthèse Agent".
+# VERSION FINALE - Utilise AgentsPanel en mode "conges" (soldes).
 
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
@@ -28,18 +28,26 @@ class CongesManagementPage(ttk.Frame):
         main_pane = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
         main_pane.pack(fill=tk.BOTH, expand=True)
 
-        self.agents_panel = AgentsPanel(parent_widget=main_pane, main_app=self.main_app, manager=self.manager, 
-                                        base_dir=self.main_app.base_dir, on_agent_select_callback=self._on_agent_select)
-        main_pane.add(self.agents_panel, weight=2)
+        # --- MODIFICATION ICI ---
+        # On spécifie le mode d'affichage pour la vue des congés.
+        self.agents_panel = AgentsPanel(
+            parent_widget=main_pane, 
+            main_app=self.main_app, 
+            manager=self.manager, 
+            base_dir=self.main_app.base_dir, 
+            on_agent_select_callback=self._on_agent_select,
+            view_mode="conges" 
+        )
+        main_pane.add(self.agents_panel, weight=3) # Plus de place pour les colonnes de soldes
 
         self.conges_details_panel = CongesDetailsPanel(parent=main_pane, main_app=self.main_app, manager=self.manager)
-        main_pane.add(self.conges_details_panel, weight=3)
+        main_pane.add(self.conges_details_panel, weight=2)
     
     def _on_agent_select(self, agent_id):
         self.conges_details_panel.display_conges_for_agent(agent_id)
 
     def refresh_all(self, agent_to_select_id=None):
-        self.agents_panel.refresh_agents_list(agent_to_select_id)
+        self.agents_panel.refresh_all(agent_to_select_id)
         if agent_to_select_id is None:
             selected_ids = self.agents_panel.get_selected_agent_ids()
             agent_to_select_id = selected_ids[0] if selected_ids else None

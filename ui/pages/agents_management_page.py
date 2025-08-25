@@ -1,13 +1,13 @@
 # Fichier : ui/pages/agents_management_page.py
-# VERSION FINALE - Connexion au nouveau formulaire AgentDetailForm.
+# VERSION FINALE - Mise à jour de la configuration des catégories d'agents.
 
 import tkinter as tk
 from tkinter import ttk, messagebox
-from collections import defaultdict
 
 from utils.config_loader import CONFIG
 from ui.ui_utils import treeview_sort_column
-from ui.forms.agent_detail_form import AgentDetailForm # <-- NOUVEL IMPORT
+from ui.forms.agent_detail_form import AgentDetailForm
+from ui.agent_synthesis_window import AgentSynthesisWindow
 from utils.date_utils import format_date_for_display
 
 class AgentsManagementPage(ttk.Frame):
@@ -16,14 +16,85 @@ class AgentsManagementPage(ttk.Frame):
         self.main_app = main_app
         self.manager = manager
         
-        self.current_category = "Professeurs"
+        self.current_category = "Tout le personnel"
         
+        # --- NOUVELLE CONFIGURATION DES CATÉGORIES ---
         self.categories_config = {
-            "Professeurs": {"keywords": ["Professeur"], "columns": ["Nom", "Prénom", "PPR", "Cadre/Grade", "Spécialité", "Service d'affectation", "Date prise de service", "Statut hiérarchique", "Solde Total"]},
-            "Médecins Résidents": {"keywords": ["Résident"], "columns": ["Nom", "Prénom", "PPR", "Cadre/Grade", "Statut contrat", "Spécialité", "Date prise de service", "Date de fin de formation", "Solde Total"]},
-            "Médecins Internes": {"keywords": ["Interne"], "columns": ["Nom", "Prénom", "Cadre/Grade", "Date prise de service", "Site de stage 1", "Site de stage 2", "Prolongation", "Solde Total"]},
-            "Infirmiers et Techniciens": {"keywords": ["Infirmier", "Technicien", "Sage-femme", "Rééducateur"], "columns": ["Nom", "Prénom", "PPR", "Cadre/Grade", "Spécialité", "Date prise de service", "Statut hiérarchique", "Solde Total"]},
-            "Administration": {"keywords": ["Administrateur", "Adjoint"], "columns": ["Nom", "Prénom", "PPR", "Cadre/Grade", "Service d'affectation", "Date prise de service", "Solde Total"]}
+            "Tout le personnel": {
+                "keywords": [], # Pas de mot-clé, affichera tout le monde
+                "columns": [
+                    ("Nom", lambda a: a.nom), ("Prénom", lambda a: a.prenom), ("PPR", lambda a: a.ppr),
+                    ("Cadre/Grade", lambda a: a.cadre),
+                    ("Service d'affectation", lambda a: a.service_affectation),
+                    ("Solde Total", lambda a: f"{a.get_solde_total_actif():.1f} j")
+                ]
+            },
+            "Professeurs": {
+                "keywords": ["Professeur"],
+                "columns": [
+                    ("Nom", lambda a: a.nom), ("Prénom", lambda a: a.prenom), ("PPR", lambda a: a.ppr),
+                    ("Cadre/Grade", lambda a: a.cadre), ("Spécialité", lambda a: a.specialite),
+                    ("Service d'affectation", lambda a: a.service_affectation),
+                    ("Date prise de service", lambda a: format_date_for_display(a.date_prise_service)),
+                    ("Statut hiérarchique", lambda a: a.statut_hierarchique),
+                    ("Solde Total", lambda a: f"{a.get_solde_total_actif():.1f} j")
+                ]
+            },
+            "Médecins et pharmaciens": {
+                "keywords": ["Médecin", "Pharmacien"],
+                "exclude_keywords": ["Résident", "Interne"], # Pour ne pas inclure résidents et internes
+                "columns": [
+                    ("Nom", lambda a: a.nom), ("Prénom", lambda a: a.prenom), ("PPR", lambda a: a.ppr),
+                    ("Cadre/Grade", lambda a: a.cadre), ("Spécialité", lambda a: a.specialite),
+                    ("Service d'affectation", lambda a: a.service_affectation),
+                    ("Date prise de service", lambda a: format_date_for_display(a.date_prise_service)),
+                    ("Solde Total", lambda a: f"{a.get_solde_total_actif():.1f} j")
+                ]
+            },
+            "Médecins Résidents": {
+                "keywords": ["Résident"],
+                "columns": [
+                    ("Nom", lambda a: a.nom), ("Prénom", lambda a: a.prenom), ("PPR", lambda a: a.ppr),
+                    ("Cadre/Grade", lambda a: a.cadre),
+                    ("Statut contrat", lambda a: a.profil.statut_contrat if a.profil else ''),
+                    ("Spécialité", lambda a: a.specialite),
+                    ("Date prise de service", lambda a: format_date_for_display(a.date_prise_service)),
+                    ("Date de fin de formation", lambda a: format_date_for_display(a.profil.date_fin_formation) if a.profil else ''),
+                    ("Solde Total", lambda a: f"{a.get_solde_total_actif():.1f} j")
+                ]
+            },
+            "Médecins Internes": {
+                "keywords": ["Interne"],
+                "columns": [
+                    ("Nom", lambda a: a.nom), ("Prénom", lambda a: a.prenom), ("Cadre/Grade", lambda a: a.cadre),
+                    ("Date prise de service", lambda a: format_date_for_display(a.date_prise_service)),
+                    ("Site de stage 1", lambda a: a.profil.site_stage_1 if a.profil else ''),
+                    ("Site de stage 2", lambda a: a.profil.site_stage_2 if a.profil else ''),
+                    ("Prolongation", lambda a: a.profil.prolongation if a.profil else ''),
+                    ("Solde Total", lambda a: f"{a.get_solde_total_actif():.1f} j")
+                ]
+            },
+            "Infirmiers et Techniciens de santé": {
+                "keywords": ["Infirmier", "Technicien de santé", "Rééducateur", "Sage-femme", "Assistant médico-social"],
+                "columns": [
+                    ("Nom", lambda a: a.nom), ("Prénom", lambda a: a.prenom), ("PPR", lambda a: a.ppr),
+                    ("Cadre/Grade", lambda a: a.cadre), ("Spécialité", lambda a: a.specialite),
+                    ("Date prise de service", lambda a: format_date_for_display(a.date_prise_service)),
+                    ("Statut hiérarchique", lambda a: a.statut_hierarchique),
+                    ("Solde Total", lambda a: f"{a.get_solde_total_actif():.1f} j")
+                ]
+            },
+            "Administration": {
+                "keywords": ["Ingénieur", "Technicien", "Administrateur", "Adjoint"],
+                "exclude_keywords": ["Technicien de santé"], # Pour ne pas inclure les techniciens de santé
+                "columns": [
+                    ("Nom", lambda a: a.nom), ("Prénom", lambda a: a.prenom), ("PPR", lambda a: a.ppr),
+                    ("Cadre/Grade", lambda a: a.cadre),
+                    ("Service d'affectation", lambda a: a.service_affectation),
+                    ("Date prise de service", lambda a: format_date_for_display(a.date_prise_service)),
+                    ("Solde Total", lambda a: f"{a.get_solde_total_actif():.1f} j")
+                ]
+            }
         }
 
         self._create_widgets()
@@ -39,21 +110,18 @@ class AgentsManagementPage(ttk.Frame):
         agents_container = ttk.Frame(main_pane)
         main_pane.add(agents_container, weight=4)
         
-        self._create_agents_list_widgets(agents_container)
-
-    def _create_agents_list_widgets(self, parent):
-        search_frame = ttk.Frame(parent)
+        search_frame = ttk.Frame(agents_container)
         search_frame.pack(fill=tk.X, padx=5, pady=5)
         ttk.Label(search_frame, text="Rechercher:").pack(side=tk.LEFT)
         self.search_var = tk.StringVar()
         self.search_var.trace_add("write", lambda *args: self.refresh_all())
         ttk.Entry(search_frame, textvariable=self.search_var).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
         
-        self.list_agents = ttk.Treeview(parent, show="headings", selectmode="extended")
+        self.list_agents = ttk.Treeview(agents_container, show="headings", selectmode="extended")
         self.list_agents.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         self.list_agents.bind("<Double-1>", self._on_double_click)
         
-        actions_frame = ttk.Frame(parent)
+        actions_frame = ttk.Frame(agents_container)
         actions_frame.pack(fill=tk.X, padx=5, pady=5)
         ttk.Button(actions_frame, text="Fiche / Modifier", command=self._open_agent_profile).pack(side=tk.LEFT)
         ttk.Button(actions_frame, text="Ajouter un nouvel agent", command=self._add_agent).pack(side=tk.LEFT, padx=5)
@@ -63,50 +131,43 @@ class AgentsManagementPage(ttk.Frame):
         self.refresh_all()
         
     def _setup_agent_list_columns(self):
-        current_cols = self.list_agents['columns']
         if not self.current_category: return
         
-        new_cols = self.categories_config[self.current_category]["columns"]
+        column_defs = self.categories_config[self.current_category]["columns"]
+        column_names = [name for name, _ in column_defs]
         
-        if tuple(current_cols) == tuple(new_cols):
-            for item in self.list_agents.get_children(): self.list_agents.delete(item)
-            return
-
-        self.list_agents.config(columns=new_cols)
-        
-        for col in new_cols:
-            self.list_agents.heading(col, text=col, command=lambda c=col: treeview_sort_column(self.list_agents, c, False))
-            self.list_agents.column(col, width=120, anchor='w')
+        self.list_agents.config(columns=column_names)
+        for item in self.list_agents.get_children():
+            self.list_agents.delete(item)
+            
+        for col_name in column_names:
+            self.list_agents.heading(col_name, text=col_name, command=lambda c=col_name: treeview_sort_column(self.list_agents, c, False))
+            self.list_agents.column(col_name, width=120, anchor='w')
 
     def refresh_all(self, agent_to_select_id=None):
         self._setup_agent_list_columns()
         if not self.current_category: return
         
-        keywords = self.categories_config[self.current_category]["keywords"]
+        category_conf = self.categories_config[self.current_category]
+        keywords = category_conf.get("keywords", [])
+        exclude_keywords = category_conf.get("exclude_keywords", [])
+        
         all_agents = self.manager.get_all_agents(statut='Actif', term=self.search_var.get() or None)
         
-        agents_in_category = [agent for agent in all_agents if any(keyword.lower() in agent.cadre.lower() for keyword in keywords)]
+        agents_in_category = []
+        if not keywords: # Cas "Tout le personnel"
+            agents_in_category = all_agents
+        else:
+            for agent in all_agents:
+                cadre_lower = agent.cadre.lower()
+                # Doit contenir un mot-clé positif
+                if any(k.lower() in cadre_lower for k in keywords):
+                    # Ne doit contenir aucun mot-clé d'exclusion
+                    if not any(ek.lower() in cadre_lower for ek in exclude_keywords):
+                        agents_in_category.append(agent)
         
-        columns_map = self.categories_config[self.current_category]["columns"]
-
         for agent in agents_in_category:
-            values = []
-            for col_name in columns_map:
-                col_attr = col_name.lower().replace(' ', '_').replace('/', '_')
-                value = None
-                
-                if hasattr(agent, col_attr):
-                    value = getattr(agent, col_attr)
-                elif agent.profil and hasattr(agent.profil, col_attr):
-                    value = getattr(agent.profil, col_attr)
-                elif col_name == "Solde Total":
-                    value = f"{agent.get_solde_total_actif():.1f} j"
-
-                if "date" in col_attr:
-                    value = format_date_for_display(value)
-                
-                values.append(value or '')
-
+            values = self._get_agent_values(agent)
             self.list_agents.insert("", "end", values=values, iid=agent.id)
             
         if agent_to_select_id:
@@ -117,13 +178,19 @@ class AgentsManagementPage(ttk.Frame):
             except tk.TclError:
                 pass
 
+    def _get_agent_values(self, agent):
+        if not self.current_category: return []
+        
+        column_defs = self.categories_config[self.current_category]["columns"]
+        return [accessor(agent) or '' for _, accessor in column_defs]
+
     def _on_double_click(self, event):
         self._open_agent_profile()
         
     def _open_agent_profile(self):
         selected_items = self.list_agents.selection()
         if len(selected_items) == 1:
-            agent_id = selected_items[0]
+            agent_id = int(selected_items[0])
             AgentDetailForm(self.main_app, self.manager, agent_id_to_modify=agent_id, on_close_callback=self.refresh_all)
 
     def _add_agent(self):

@@ -18,7 +18,7 @@ conges:
   types_decompte_solde:
     - "Congé annuel"
   holidays_country: 'MA'
-  solde_annuel_par_defaut: 22.0
+  solde_annuel_par_defaut: 22
 
 ui:
   grades:
@@ -47,7 +47,6 @@ ui:
     - "Technicien 4ème grade"
     - "Technicien de santé 1er grade"
     - "Technicien de santé Grade principal"
-    - "Technicien en maintenance biomédicale"
     
   types_conge:
     - "Congé annuel"
