@@ -1,0 +1,66 @@
+# Fichier : config.yaml
+# VERSION FINALE : Mise à jour avec la liste complète et nettoyée des grades.
+
+app:
+  title: "Gestion des Congés"
+  version: "3.2 - Final"
+
+db:
+  filename: "conges_v3.db"
+  certificates_dir: "certificats"
+
+paths:
+  templates_dir: "templates"
+
+conges:
+  maternite_duree: 98
+  paternite_duree: 15
+  types_decompte_solde:
+    - "Congé annuel"
+  holidays_country: 'MA'
+  solde_annuel_par_defaut: 22.0
+
+ui:
+  grades:
+    - "Administrateur 1er grade"
+    - "Administrateur 2ème grade"
+    - "Adjoint Technique 2ème grade"
+    - "Assistant médico-social 1er Grade"
+    - "Infirmier 1er Grade"
+    - "Infirmier Grade principal"
+    - "Ingénieur d'Etat 1er Grade"
+    - "Ingénieur d'Etat Grade Principal"
+    - "Ingénieur en Chef Grade Principal"
+    - "Médecin 1er grade"
+    - "Médecin HG"
+    - "Médecin Interne"
+    - "Médecin Résident"
+    - "Pharmacien 1er grade"
+    - "Pharmacien Grade principal"
+    - "Professeur Agrégé"
+    - "Professeur Assistant"
+    - "Professeur de l'Enseignement Supérieur"
+    - "Rééducateur 1er Grade"
+    - "Sage-femme 1er grade"
+    - "Technicien 2ème grade"
+    - "Technicien 3ème grade"
+    - "Technicien 4ème grade"
+    - "Technicien de santé 1er grade"
+    - "Technicien de santé Grade principal"
+    - "Technicien en maintenance biomédicale"
+    
+  types_conge:
+    - "Congé annuel"
+    - "Congé exceptionnel"
+    - "Congé de maladie"
+    - "Congé de maternité"
+    - "Congé de paternité"
+  
+  certificat_file_types:
+    - ("Documents PDF", "*.pdf")
+    - ("Images", "*.png *.jpg *.jpeg *.gif")
+    - ("Tous les fichiers", "*.*")
+
+  agent_import_headers_required:
+    - nom
+    - prenom
